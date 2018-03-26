@@ -8,7 +8,6 @@
     <artifactId>easyclock-app</artifactId>
     <version>1.3</version>
 
-
     <build>
         <plugins>
             <plugin>
