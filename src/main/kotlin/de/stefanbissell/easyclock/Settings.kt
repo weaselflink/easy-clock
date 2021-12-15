@@ -1,10 +1,6 @@
 package de.stefanbissell.easyclock
 
-import java.util.Properties
-import java.nio.file.Files
-import java.io.FileWriter
-import java.io.FileReader
-import java.io.File
+import kotlin.io.path.Path
 
 class Settings(
     var x: Int = 10,
@@ -13,37 +9,46 @@ class Settings(
 ) {
 
     fun save() {
-        val properties = Properties().apply {
-            setProperty("fontSize", fontSize.toString())
-            setProperty("x", x.toString())
-            setProperty("y", y.toString())
-        }
-        Files.createDirectories(userDataDirectory.toPath())
-        properties.store(FileWriter(settingsFile), "position and font size of clock")
+        userDataDirectory.toFile().mkdirs()
+        settingsFile.toFile().writeText(
+            """
+                # position and font size of clock
+                fontSize=$fontSize
+                x=$x
+                y=$y
+            """.trimIndent()
+        )
     }
 
     companion object {
         fun loadSettings(): Settings =
-            if (settingsFile.exists()) {
+            if (settingsFile.toFile().exists()) {
                 loadProperties().let {
                     Settings(
-                        x = it.getProperty("x").toInt(),
-                        y = it.getProperty("y").toInt(),
-                        fontSize = it.getProperty("fontSize").toInt()
+                        x = it.getProperty("x") ?: 10,
+                        y = it.getProperty("y") ?: 10,
+                        fontSize = it.getProperty("fontSize") ?: 80
                     )
                 }
             } else {
                 Settings()
             }
 
-        private fun loadProperties() =
-            Properties().apply {
-                load(FileReader(settingsFile))
-            }
+        private fun loadProperties() = settingsFile.toFile().readText()
 
-        private val settingsFile: File
-            get() = File(userDataDirectory, "settings.txt")
-        private val userDataDirectory: File
-            get() = File(System.getProperty("user.home") + File.separator + "easyclock" + File.separator)
+        private fun String.getProperty(name: String): Int? {
+            val regex = Regex("$name\\s*=\\s*(\\d+)")
+            return regex
+                .find(this)
+                ?.groups
+                ?.get(1)
+                ?.value
+                ?.toIntOrNull()
+        }
+
+        private val userDataDirectory
+            get() = Path(System.getProperty("user.home")).resolve("easyclock")
+        private val settingsFile
+            get() = userDataDirectory.resolve("settings.txt")
     }
 }
