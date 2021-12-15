@@ -1,19 +1,23 @@
+@file:Suppress("SuspiciousCollectionReassignment")
+
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     application
     kotlin("jvm")
+    id("org.jetbrains.compose")
     id("com.github.ben-manes.versions")
     id("com.github.johnrengelman.shadow")
 }
 
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
+    implementation(compose.desktop.currentOs)
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
 }
 
 application {
@@ -24,7 +28,8 @@ application {
 tasks {
     withType<KotlinCompile>().configureEach {
         kotlinOptions {
-            jvmTarget = "1.8"
+            jvmTarget = "11"
+            freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
         }
     }
 

@@ -9,7 +9,7 @@ import java.io.File
 class Settings(
     var x: Int = 10,
     var y: Int = 10,
-    var fontSize: Int = 60
+    var fontSize: Int = 80
 ) {
 
     fun save() {
