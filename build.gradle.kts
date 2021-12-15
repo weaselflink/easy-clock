@@ -22,25 +22,19 @@ dependencies {
 
 application {
     @Suppress("DEPRECATION")
-    mainClassName = "de.stefanbissell.easyclock.AppKt"
+    mainClass.set("de.stefanbissell.easyclock.AppKt")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
 }
 
 tasks {
     withType<KotlinCompile>().configureEach {
         kotlinOptions {
             jvmTarget = "11"
-            freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
+            freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
         }
     }
-
-    withType<Jar> {
-        manifest {
-            attributes(
-                mapOf(
-                    "Main-Class" to application.mainClass.get()
-                )
-            )
-        }
-    }
-
 }
