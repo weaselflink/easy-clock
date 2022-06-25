@@ -5,7 +5,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     application
     kotlin("jvm")
-    id("org.jetbrains.compose")
     id("com.github.ben-manes.versions")
     id("com.github.johnrengelman.shadow")
 }
@@ -16,7 +15,6 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib-jdk8"))
-    implementation(compose.desktop.currentOs)
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.3.1")
 }
 
@@ -34,7 +32,6 @@ tasks {
     withType<KotlinCompile>().configureEach {
         kotlinOptions {
             jvmTarget = "11"
-            freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
         }
     }
 }

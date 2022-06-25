@@ -1,79 +1,103 @@
-@file:OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
-
 package de.stefanbissell.easyclock
 
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.mouseClickable
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.ExperimentalComposeUiApi
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.isSecondaryPressed
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.singleWindowApplication
+import de.stefanbissell.easyclock.Settings.Companion.loadSettings
+import javax.swing.JFrame
+import javax.swing.JLabel
+import java.awt.Font
+import java.awt.Color
+import javax.swing.border.EmptyBorder
+import java.text.SimpleDateFormat
+import java.awt.Point
+import java.awt.event.*
+import java.util.*
+import javax.swing.Timer
+import kotlin.math.max
 import kotlin.system.exitProcess
-import kotlinx.coroutines.delay
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.toLocalDateTime
 
-fun main() = singleWindowApplication(
-    title = "EasyClock",
-    undecorated = true
-) {
-    ClockView()
-}
-
-@Composable
-fun ClockView() {
-    val settings = Settings.loadSettings()
-    val time = remember { mutableStateOf(Clock.System.now()) }
-    val fontSize = remember { mutableStateOf(settings.fontSize) }
-
-    Text(
-        text = time.format(),
-        modifier = Modifier
-            .mouseClickable(
-                onClick = {
-                    if (buttons.isSecondaryPressed) {
-                        exitProcess(0)
-                    }
-                    fontSize.value *= 2
-                }
-            )
-            .background(Color.Black)
-            .padding(fontSize.value.dp / 2, fontSize.value.dp / 4),
-        color = Color.Red,
-        fontSize = fontSize.value.sp
-    )
-
-    LaunchedEffect("update") {
-        while (true) {
-            time.value = Clock.System.now()
-            delay(100)
-        }
+fun main() {
+    ClockFrame().apply {
+        isVisible = true
     }
 }
 
-private fun MutableState<Instant>.format() =
-    value
-        .toLocalDateTime(TimeZone.of("Europe/Berlin"))
-        .let {
-            "${it.hour.pad(" ")}:${it.minute.pad("0")}"
+private class ClockFrame : JFrame(), ActionListener {
+
+    private val clockFont = "Courier New"
+
+    private val settings = loadSettings()
+    private val label = createLabel().apply {
+        text = timeString
+    }
+    private val timeString: String
+        get() = SimpleDateFormat("HH:mm").format(Date())
+
+    init {
+        contentPane.add(label)
+        defaultCloseOperation = EXIT_ON_CLOSE
+        isUndecorated = true
+        pack()
+        setBounds(settings.x, settings.y, bounds.width, bounds.height)
+        val adapter = ClockMouseAdapter()
+        addMouseListener(adapter)
+        addMouseMotionListener(adapter)
+        addMouseWheelListener(adapter)
+        Timer(100, this).apply {
+            isRepeats = true
+            start()
+        }
+    }
+
+    private fun createLabel(): JLabel =
+        JLabel().apply {
+            horizontalAlignment = JLabel.CENTER
+            font = Font(clockFont, Font.BOLD, settings.fontSize)
+            foreground = Color.red
+            background = Color.black
+            isOpaque = true
+            border = EmptyBorder(10, 10, 10, 10)
         }
 
-private fun Int.pad(with: String) =
-    if (this < 10) {
-        "$with$this"
-    } else {
-        "$this"
+    override fun actionPerformed(e: ActionEvent) {
+        label.text = timeString
     }
+
+    private fun resizeLabelFont(diff: Int) {
+        settings.fontSize = max(10, settings.fontSize + diff * 5)
+        label.font = Font(clockFont, Font.BOLD, settings.fontSize)
+        pack()
+    }
+
+    private fun saveSettingsAndExit() {
+        settings.save()
+        exitProcess(0)
+    }
+
+    private inner class ClockMouseAdapter : MouseAdapter() {
+
+        private var dragStart: Point? = null
+
+        override fun mousePressed(e: MouseEvent) {
+            dragStart = Point(e.x, e.y)
+        }
+
+        override fun mouseReleased(e: MouseEvent) {
+            if (e.button == MouseEvent.BUTTON3) {
+                saveSettingsAndExit()
+            }
+            dragStart = null
+        }
+
+        override fun mouseWheelMoved(e: MouseWheelEvent) {
+            resizeLabelFont(e.wheelRotation)
+        }
+
+        override fun mouseDragged(e: MouseEvent) {
+            val bounds = bounds
+            val diffX = e.x - dragStart!!.x
+            val diffY = e.y - dragStart!!.y
+            settings.x = bounds.x + diffX
+            settings.y = bounds.y + diffY
+            setBounds(settings.x, settings.y, bounds.width, bounds.height)
+        }
+    }
+}
